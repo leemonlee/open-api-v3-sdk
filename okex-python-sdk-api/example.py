@@ -4,14 +4,81 @@ import okex.futures_api as future
 import okex.lever_api as lever
 import okex.spot_api as spot
 import okex.swap_api as swap
+import matplotlib.pyplot as plt
+import db.datebase_ok as db
+from bean.kline_bean import kline
+from talib import abstract
+import numpy as np
+import talib as ta
 import json
+import hashlib
+import datetime
+import time
+from consts.constants import *
 
+
+def download_15min_kline():
+    for x in range(1, 13):
+        dt_start = (datetime.datetime(2018, x, 1))
+        if 12 == x:
+            dt_end = (datetime.datetime(2018, 12, 31))
+        else:
+            dt_end = (datetime.datetime(2018, x+1, 1) - datetime.timedelta(days = 1))
+            pass
+        print (dt_start, dt_end)
+
+        while dt_start != dt_end:
+            str_start = (dt_start.strftime("%Y-%m-%dT%H:%M:%SZ"))
+            dt_start = dt_start + datetime.timedelta(days=1)
+            str_end = (dt_start.strftime("%Y-%m-%dT%H:%M:%SZ"))
+
+            print(str_start, str_end)
+
+            #调用下载数据函数
+            downloadData(str_start, str_end)
+            time.sleep(0.01)
+            pass
+
+        str_start = (dt_start.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        dt_start = dt_start + datetime.timedelta(days=1)
+        str_end = (dt_start.strftime("%Y-%m-%dT%H:%M:%SZ"))
+        print(str_start, str_end)
+            #调用下载数据函数
+        downloadData(str_start, str_end)
+
+    pass
+
+def downloadData(str_start, str_end):
+    # api_key = '16cc958f-bd9f-497f-85e3-7cc2522551bb'
+    # seceret_key = 'AB594D22FB2DF929F4DD52C5B7D37001'
+    # passphrase = 'Jmlee-18520328877'
+    # futureAPI = future.FutureAPI(api_key, seceret_key, passphrase, True)
+    result = futureAPI.get_kline('BTC-USD-190329', kline_type_30min, str_start, str_end)
+    # result = futureAPI.get_kline('BTC-USD-190329',kline_type_4hour,'2018-08-01T00:00:00Z', '2018-08-02T00:00:00Z')
+    result.reverse()
+
+    for k in result:
+        kk = kline(k[0], k[1], k[2], k[3], k[4], k[5], k[6])
+        kk.printMyself()
+
+        # 计算KLINE唯一标识MD5
+        kline_md5 = hashlib.md5(str(kline_type_30min + k[0]).encode("utf-8")).hexdigest()
+
+        # 捕获插入数据异常错误
+        try:
+            db.insert(kline_md5, k[0], k[1], k[2], k[3], k[4], k[5], k[6])
+            pass
+        except Exception as e:
+            print('Exception:',e)
+            pass
+
+    pass
 
 if __name__ == '__main__':
 
-    api_key = ''
-    seceret_key = ''
-    passphrase = ''
+    api_key = '16cc958f-bd9f-497f-85e3-7cc2522551bb'
+    seceret_key = 'AB594D22FB2DF929F4DD52C5B7D37001'
+    passphrase = 'Jmlee-18520328877'
     
 
     # account api test
@@ -51,14 +118,14 @@ if __name__ == '__main__':
     #result = futureAPI.get_leverage('btc')
     #result = futureAPI.set_leverage(symbol='BTC', instrument_id='BCH-USD-181026', direction=1, leverage=10)
 
-    orders = []
-    order1 = {"client_oid": "f379a96206fa4b778e1554c6dc969687", "type": "2", "price": "1800.0", "size": "1", "match_price": "0"}
-    order2 = {"client_oid": "f379a96206fa4b778e1554c6dc969687", "type": "2", "price": "1800.0", "size": "1", "match_price": "0"}
-    orders.append(order1)
-    orders.append(order2)
-    orders_data = json.dumps(orders)
-    print(orders_data)
-    result = futureAPI.take_orders('BCH-USD-181019', orders_data=orders_data, leverage=10)
+    # orders = []
+    # order1 = {"client_oid": "f379a96206fa4b778e1554c6dc969687", "type": "2", "price": "1800.0", "size": "1", "match_price": "0"}
+    # order2 = {"client_oid": "f379a96206fa4b778e1554c6dc969687", "type": "2", "price": "1800.0", "size": "1", "match_price": "0"}
+    # orders.append(order1)
+    # orders.append(order2)
+    # orders_data = json.dumps(orders)
+    # print(orders_data)
+    # result = futureAPI.take_orders('BCH-USD-181019', orders_data=orders_data, leverage=10)
 
     #result = futureAPI.get_ledger('btc')
     #result = futureAPI.get_products()
@@ -67,7 +134,7 @@ if __name__ == '__main__':
     #result = futureAPI.get_specific_ticker('ETC-USD-181026')
     #result = futureAPI.get_specific_ticker('ETC-USD-181026')
     #result = futureAPI.get_trades('ETC-USD-181026', 1, 3, 10)
-    #result = futureAPI.get_kline('ETC-USD-181026','2018-10-14T03:48:04.081Z', '2018-10-15T03:48:04.081Z')
+    # result = futureAPI.get_kline('BTC-USD-190329',1800,'2018-12-15T00:00:00Z', '2018-12-17T00:00:00Z')
     #result = futureAPI.get_index('EOS-USD-181019')
     #result = futureAPI.get_products()
     #result = futureAPI.take_order("ccbce5bb7f7344288f32585cd3adf357", 'BCH-USD-181019','2','10000.1','1','0','10')
@@ -103,4 +170,47 @@ if __name__ == '__main__':
     # result = swapAPI.get_accounts()
     # result = swapAPI.get_instruments()
 
-    print(json.dumps(result))
+    # db.createTable()
+    # result.reverse()
+
+    # for k in result:
+    #     kk = kline(k[0], k[1], k[2], k[3], k[4], k[5], k[6])
+    #     kk.printMyself()
+
+    #     # 计算KLINE唯一标识MD5
+    #     kline_md5 = hashlib.md5(str(kline_type_1min + k[0]).encode("utf-8")).hexdigest()
+
+    #     # 捕获插入数据异常错误
+    #     try:
+    #         db.insert(kline_md5, k[0], k[1], k[2], k[3], k[4], k[5], k[6])
+    #         pass
+    #     except Exception as e:
+    #         print('Exception:',e)
+    #         pass
+        
+
+    # # list_kline = list(kline(k[0], k[1], k[2], k[3], k[4], k[5], k[6]) for k in result)
+    # # list_kline.reverse()
+    # # close = np.array(list(k.close for k in list_kline))
+
+    # close = np.array(list(k[4] for k in result))
+
+    # BBANDS = abstract.Function('BBANDS')
+    # DEMA = abstract.Function('DEMA')
+    # fig, axes = plt.subplots(2, 1, sharex=True)
+    # ax1, ax2 = axes[0], axes[1]
+
+    # upperband, middleband, lowerband = ta.BBANDS(close, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0)
+    # axes[0].plot(close, 'rd-', markersize=3)
+    # axes[0].plot(upperband, 'y-')
+    # axes[0].plot(middleband, 'b-')
+    # axes[0].plot(lowerband, 'y-')
+    # # axes[0].set_title(overlap, fontproperties="SimHei")
+    # plt.show()
+
+    # print(upperband)
+
+    download_15min_kline()
+
+    # print(json.dumps(result))
+
